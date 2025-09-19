@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide for running Codes</title>
+
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+
+        body{
+            width: 100%;
+            height: 100vh;
+            align-items: center;
+            gap: 20px;
+            background-color: #141414;
+            font-family: Arial, sans-serif;
+
+            color: #fff;
+        }
+
+        
+        .descriptionBlock{
+            width: 90%;
+            height: auto;
+            background-color: #7d0080;
+            padding: 20px 15px;
+            box-sizing: border-box;
+            margin: auto;
+
+            margin-top: 30px;
+
+            border-radius: 10px 10px 0px 0px;
+        }
+
+        .descriptionTitle h2{
+            font-size: 24px;
+            margin-bottom: 10px;
+
+            font-weight: 800;
+        }
+        .descriptionTitle p{
+            font-size: 16px;
+            color: #555;
+        }
+        .codeBlock{
+            width: 90%;
+            height: auto;
+            background-color: #000000;
+            padding: 20px;
+            box-sizing: border-box;
+            margin: auto;
+
+            border-radius: 0px 0px 10px 10px;
+        }
+        .mainCode pre{
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow-x: auto;
+        }
+        .mainCode code{
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="descriptionBlock">
+        <div class="descriptionTitle">
+            <h2>Guide for running asm (x86_64) codes</h2>
+        </div>
+        <div class="descriptionContent">
+            <p>requirements : nasm 64bit, mingw64 <br>
+            Cmd Commands below for running asm code</p>
+        </div>
+    </div>
+    <div class="codeBlock">
+        <div class="mainCode">
+            <pre><code>nasm -f win64 helloworld.asm -o hello.obj</code></pre>
+            <pre><code>gcc hello.obj -o hello.exe -mconsole</code></pre>
+            <pre><code>hello.exe</code></pre>
+        </div>
+    </div>
+    
+    <!-- ASM CODE EXPLANATIONS -->
+
+    <!-- Global Main -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>Global & Extern</h2>
+    </div>
+    <div class="descriptionContent">
+      <p><code>global main</code> tells the assembler that the label <code>main</code> should be visible outside this file (the linker needs it as the entry point).<br>
+      <code>extern printf</code> tells the assembler that <code>printf</code> exists in another file/library (MSVCRT in Windows), and will be linked during compilation.</p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>global main
+extern printf
+</code></pre>
+  </div>
+
+  <!-- Data Section -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>.Data Section</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>Declares a data section (for variables, strings, constants). <br>
+      <code>msg</code> is a label (like a pointer name). <br>
+      <code>db</code> = "define byte(s)". You’re storing: <br>
+      - ASCII string <code>"Hello, world!"</code> <br>
+      - <code>10</code> = newline character (\n) <br>
+      - <code>0</code> = null terminator (\0) required by printf. <br></p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <div class="mainCode">
+    <pre><code>section .data
+    msg db "Hello, world!", 10, 0
+</code></pre>
+    <p style="margin-top: 15px;">In memory, it looks like this (in hex/ASCII):</p>
+    <pre><code>48 65 6C 6C 6F 2C 20 77 6F 72 6C 64 21 0A 00
+H  e  l  l  o  ,     w  o  r  l  d  ! \n \0
+</code></pre>
+</div>
+  </div>
+
+  <!-- Text Section -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>.Text Section</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>The <code>.text</code> section stores executable instructions. <br>
+      Here the function <code>main</code> is defined.</p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>section .text
+main:
+</code></pre>
+  </div>
+
+  <!-- sub rsp, 40 -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>sub rsp, 40</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>Reserves 40 bytes on the stack. <br>
+      Windows x64 ABI requires 32 bytes of “shadow space” for called functions, plus alignment to 16 bytes. That’s why 40 is chosen.</p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>sub rsp, 40
+</code></pre>
+  </div>
+
+  <!-- lea rcx, [rel msg] -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>lea rcx, [rel msg]</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>Loads the address of <code>msg</code> into <code>RCX</code>. <br>
+      In Windows x64 calling convention, the first function argument is passed in <code>RCX</code>. So this prepares <code>printf</code>'s argument. <br> <br>
+    lea = Load Effective Address. It loads the memory address of msg into rcx. <br>
+On Windows x64 ABI, function arguments are passed like this: <br>
+1st argument → rcx <br>
+2nd → rdx <br>
+3rd → r8 <br>
+4th → r9 <br>
+printf expects a pointer to a format string as its 1st argument, so we put the address of msg into rcx. <br>
+rel = relative addressing, ensures position-independent code.
+    </p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>lea rcx, [rel msg]
+</code></pre>
+  </div>
+
+  <!-- call printf -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>call printf</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>Calls the <code>printf</code> function. <br>
+      It will use the string address in <code>RCX</code> and print it to the console.</p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>call printf
+</code></pre>
+  </div>
+
+  <!-- add rsp, 40 -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>add rsp, 40</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>Restores the stack pointer after function call. <br>
+      This undoes the earlier <code>sub rsp, 40</code>.</p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>add rsp, 40
+</code></pre>
+  </div>
+
+  <!-- xor eax, eax -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>xor eax, eax</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>Sets <code>EAX</code> to 0 (efficient way to zero a register). <br>
+      In C convention, the return value of <code>main</code> is in <code>EAX</code>, so this means <code>return 0</code>.</p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>xor eax, eax
+</code></pre>
+  </div>
+
+  <!-- ret -->
+  <div class="descriptionBlock">
+    <div class="descriptionTitle">
+      <h2>ret</h2>
+    </div>
+    <div class="descriptionContent">
+      <p>Returns control to the operating system. <br>
+      At this point, <code>main</code> has finished execution.</p>
+    </div>
+  </div>
+  <div class="codeBlock">
+    <pre><code>ret
+</code></pre>
+  </div>
+
+
+    <div class="creditBlock">
+        <p style="text-align: center; margin-top: 20px; color: #555;">Created by <a href="https://www.linkedin.com/in/itsmridiot/" target="_blank" style="color: #fb00ff; text-decoration: none; font-weight: 600;">Amit kumar tiwari</a></p>
+        <p style="text-align: center; color: #555; font-size: 12px; font-weight: 600;">Btech CSE 2nd Year Student</p>
+    </div>
+</body>
+</html>
