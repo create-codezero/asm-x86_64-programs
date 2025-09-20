@@ -1,3 +1,5 @@
+; learned making these 6 programs combined on 21 sept 2k25
+
 default rel
 extern printf, scanf, fgets, __acrt_iob_func, fflush, fgetc
 
